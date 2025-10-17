@@ -1,0 +1,69 @@
+
+---
+
+- name: backup configs from all lab devices
+  hosts: hydlab_network_devices
+  gather_facts: no
+  connection: network_cli
+
+  vars_files:
+    - lab_vault.yml
+
+  vars:
+    ansible_password: "{{ lookup('vars', inventory_hostname + '_password') }}"
+    backup_date: "{{ lookup('pipe', 'date +%F') }}"
+
+  tasks:
+    - name: Save running config
+      when: ansible_network_os == 'ios'
+      ios_command:
+        commands:
+           - write memory
+
+    - name: Wait 10 seconds to ensure config is saved
+      when: ansible_network_os == 'ios'
+      pause:
+        seconds: 10
+
+    - name: get running config for backups
+      when: ansible_network_os == 'ios'
+      ios_command:
+        commands:
+           - show running-config
+      register: ios_config
+
+    - name: Save running config and get running config for ASA device
+      when: ansible_network_os == 'asa'
+      cisco.asa.asa_command:
+        commands:
+          - write memory
+
+    - name: Wait 10 seconds to ensure config is saved 
+      when: ansible_network_os == 'asa'
+      pause:
+        seconds: 10
+
+    - name: get running configs for backups
+      when: ansible_network_os == 'asa'
+      cisco.asa.asa_command:
+        commands:
+          - show running-config
+      register: asa_config
+
+    - name: Save ios config locally
+      when: ios_config is defined
+      copy:
+        content: "{{ ios_config.stdout[0] }}"
+        dest: "{{ '/home/labuser1/learning_ansible/itsm_device_config_backup/' ~ inventory_hostname ~ '-' ~ backup_date ~ '.cfg' }}"
+      delegate_to: localhost
+
+    - name: Save ASA config locally
+      when: asa_config is defined
+      copy:
+        content: " {{asa_config.stdout[0] }} "
+        dest: "{{ '/home/labuser1/learning_ansible/itsm_device_config_backup/' ~ inventory_hostname ~ '-' ~ backup_date ~ '.cfg' }}"
+      delegate_to: localhost
+
+
+
+
