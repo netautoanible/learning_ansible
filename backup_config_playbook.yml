@@ -51,14 +51,14 @@
       register: asa_config
 
     - name: Save ios config locally
-      when: ios_config is defined
+      when: ios_config.stdout is defined
       copy:
         content: "{{ ios_config.stdout[0] }}"
         dest: "{{ '/home/labuser1/learning_ansible/itsm_device_config_backup/' ~ inventory_hostname ~ '-' ~ backup_date ~ '.cfg' }}"
       delegate_to: localhost
 
     - name: Save ASA config locally
-      when: asa_config is defined
+      when: asa_config.stdout is defined
       copy:
         content: " {{asa_config.stdout[0] }} "
         dest: "{{ '/home/labuser1/learning_ansible/itsm_device_config_backup/' ~ inventory_hostname ~ '-' ~ backup_date ~ '.cfg' }}"
